@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools>=58.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dynamic_deephit"
+version = "0.1.0"
+description = "Dynamic-DeepHit: A Deep Learning Approach for Dynamic Survival Analysis"
+readme = "README.md"
+authors = [
+    { name = "Chengfeng Zhang", email = "2714311212@qq.com" },
+    { name = "Zheng Chen", email = "zheng-chen@hotmail.com" }
+]
+maintainers = [
+    { name = "Zheng Chen", email = "zheng-chen@hotmail.com" }
+]
+classifiers = [
+    "Programming Language :: Python :: 3.6",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "License :: OSI Approved :: MIT License"
+]
+requires-python = ">=3.6.0,<3.7.0"
+dependencies = [
+    "numpy==1.16.5",
+    "pandas==1.0.1",
+    "tensorflow==1.13.1",
+    "scikit-learn==0.22.1",
+    "lifelines==0.24.9",
+    "termcolor==1.1.0",
+    "scikit-survival==0.12.0"
+]
+
+[project.urls]
+Paper-TBME-2020 = "https://ieeexplore.ieee.org/document/8681104"
+Repository = "https://github.com/zhangcf11/dynamic_deepHit"  # 请替换为实际地址
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+packages = { find = { where = ["src"] } }
+
+[tool.setuptools.package-data]
+dynamic_deephit = ["data/*.csv"]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=6.0",
+    "black>=21.0"
+]
