@@ -33,7 +33,7 @@ dependencies = [
 
 [project.urls]
 Paper-TBME-2020 = "https://ieeexplore.ieee.org/document/8681104"
-Repository = "https://github.com/zhangcf11/dynamic_deepHit"  # 请替换为实际地址
+Repository = "https://github.com/chenzgz/dynamic_deepHit"  
 
 [tool.setuptools]
 package-dir = { "" = "src" }
