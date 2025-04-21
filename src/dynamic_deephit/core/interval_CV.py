@@ -55,7 +55,7 @@ def interval_CV(method,df_, id_time_status_list,observation, bin_list, cont_list
         file_path, hyperparams, n, seed, norm_mode,burn_in_mode, boost_mode,max_length)
     else:
         raise ValueError(f"Unsupported validation method: {method}. Choose from 'K-fold', 'split' or 'boot'")
-    return c_index_mean, brier_mean
+        return {'C_index':c_index_mean, 'Brier':brier_mean}
 
 
 
