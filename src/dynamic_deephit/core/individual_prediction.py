@@ -23,11 +23,10 @@ def predict_with_dynamic_deephit(model, sess, df_, id_time_status_list,observati
         norm_mode: Normalization mode ('standard' or other)
         max_length : The maximum number of observations for all IDs in the modeling dataset.
 
-    Returns:
+  Returns:
         Dictionary containing:
-        - risk_predictions: Dictionary of risk scores per event type
-        - survival_probabilities: Array of survival probabilities
         - cumulative_incidence: Dictionary of cumulative incidence functions
+        - survival_probabilities: Array of survival probabilities
     """
     id_list = pd.unique(df_[id_time_status_list[0]])
     # Data preprocessing (matches training pipeline)
