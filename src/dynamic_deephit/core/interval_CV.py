@@ -14,6 +14,7 @@ def interval_CV(method,df_, id_time_status_list,observation, bin_list, cont_list
         Perform interval cross-validation for the Dynamic-DeepHit model with evaluation for each pred_time and eval_time combination.
 
         Args:
+            method：Types of internal cross validation.There are three types of internal validation methods: random splitting (split), K-fold cross-validation (K-fold), and bootstrap (boot)
             df_ (pd.DataFrame): The input dataset.
             id_time_status_list (list): List of column names for ID, time, and status.
             observation(list): observation feature column names.
