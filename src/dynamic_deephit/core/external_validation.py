@@ -37,7 +37,12 @@ Returns
                                                        norm_mode, max_length=None)
     tr_data, tr_time, tr_label = DATA1
     risk_all = f_get_risk_predictions(sess, model, data, data_mi, pred_time, eval_time)
-    num_Event = newdata[id_time_status_list[2]].nunique() - 1
+    unique_labels = newdata[id_time_status_list[2]]
+            if 0 in unique_labels:
+                num_Event = unique_labels.nunique() - 1
+            else:
+                num_Event = unique_labels.nunique()
+    #num_Event = newdata[id_time_status_list[2]].nunique() - 1
     num_pred = len(pred_time)
     num_eval = len(eval_time)
     c_index_values = [
