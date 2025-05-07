@@ -98,8 +98,12 @@ def k_fold_cross_validation(df_, id_time_status_list,observation, bin_list, cont
         try:
             # Initialize KFold
             kf = KFold(n_splits=K, shuffle=True, random_state=seed + i)
-
-            num_Event = df_[id_time_status_list[2]].nunique() - 1
+            unique_labels = df_[id_time_status_list[2]]
+            if 0 in unique_labels:
+                num_Event = unique_labels.nunique() - 1
+            else:
+                num_Event = unique_labels.nunique()
+            #num_Event = df_[id_time_status_list[2]].nunique() - 1
             num_pred = len(pred_time)
             num_eval = len(eval_time)
 
@@ -286,7 +290,12 @@ def train_test_split_validation(
             risk_all = f_get_risk_predictions(sess, model, va_data, va_data_mi, pred_time, eval_time)
 
             # Calculate metrics for each combination
-            num_Event = df_[id_time_status_list[2]].nunique() - 1
+            unique_labels = df_[id_time_status_list[2]]
+            if 0 in unique_labels:
+                num_Event = unique_labels.nunique() - 1
+            else:
+                num_Event = unique_labels.nunique()
+            #num_Event = df_[id_time_status_list[2]].nunique() - 1
             num_pred = len(pred_time)
             num_eval = len(eval_time)
             c_index_values = [
@@ -395,8 +404,12 @@ def bootstrap_validation(
     """
     np.random.seed(seed)
 
-
-    num_Event = df_[id_time_status_list[2]].nunique() - 1
+    unique_labels = df_[id_time_status_list[2]]
+            if 0 in unique_labels:
+                num_Event = unique_labels.nunique() - 1
+            else:
+                num_Event = unique_labels.nunique()
+    #num_Event = df_[id_time_status_list[2]].nunique() - 1
     #  Train model on original data and get apparent performance
     print("Calculating apparent performance on original data...")
     original_model, original_sess = train_dynamic_deephit_model(
