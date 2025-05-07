@@ -243,7 +243,12 @@ def import_dataset(df_, id_time_status_list,observation ,bin_list, cont_list, no
 
     # Define the number of categories and events
     num_Category = int(np.max(pat_info[:, 1]) * 1.2)  # Define a larger number of categories than the max time-to-event
-    num_Event = len(np.unique(label)) - 1  # Number of unique events (excluding 0)
+    unique_labels = np.unique(label)
+    if 0 in unique_labels:
+        num_Event = len(unique_labels) - 1
+    else:
+        num_Event = len(unique_labels)
+    #num_Event = len(np.unique(label)) - 1  # Number of unique events (excluding 0)
 
     # Convert to single-risk if only one event type exists
     if num_Event == 1:
