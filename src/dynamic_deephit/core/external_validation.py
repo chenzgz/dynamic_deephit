@@ -38,10 +38,10 @@ Returns
     tr_data, tr_time, tr_label = DATA1
     risk_all = f_get_risk_predictions(sess, model, data, data_mi, pred_time, eval_time)
     unique_labels = newdata[id_time_status_list[2]]
-            if 0 in unique_labels:
-                num_Event = unique_labels.nunique() - 1
-            else:
-                num_Event = unique_labels.nunique()
+    if 0 in unique_labels:
+        num_Event = unique_labels.nunique() - 1
+    else:
+        num_Event = unique_labels.nunique()
     #num_Event = newdata[id_time_status_list[2]].nunique() - 1
     num_pred = len(pred_time)
     num_eval = len(eval_time)
@@ -80,8 +80,8 @@ Returns
     c_index_mean = {
         event_names[i]: pd.DataFrame(
             c_index_values[i],
-            index=[f"Pred_{t:.1f}" for t in pred_time],  # 行名：保留1位小数
-            columns=[f"Eval_{t:.1f}" for t in eval_time]  # 列名：保留1位小数
+            index=[f"Pred_{t:.1f}" for t in pred_time],  
+            columns=[f"Eval_{t:.1f}" for t in eval_time] 
         ).rename_axis(
             index="Prediction Time",
             columns="Evaluation Time"
