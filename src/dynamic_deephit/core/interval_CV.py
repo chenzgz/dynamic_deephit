@@ -98,11 +98,13 @@ def k_fold_cross_validation(df_, id_time_status_list,observation, bin_list, cont
         try:
             # Initialize KFold
             kf = KFold(n_splits=K, shuffle=True, random_state=seed + i)
+
             unique_labels = df_[id_time_status_list[2]]
             if 0 in unique_labels:
                 num_Event = unique_labels.nunique() - 1
             else:
                 num_Event = unique_labels.nunique()
+            #num_Event = df_[id_time_status_list[2]].nunique() - 1
             #num_Event = df_[id_time_status_list[2]].nunique() - 1
             num_pred = len(pred_time)
             num_eval = len(eval_time)
