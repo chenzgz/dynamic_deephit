@@ -43,20 +43,20 @@ def interval_CV(method,df_, id_time_status_list,observation, bin_list, cont_list
               mean Brier score matrices of identical shape
         """
     if method=="K-fold":
-        c_index_mean, brier_mean=k_fold_cross_validation(df_, id_time_status_list,observation, bin_list, cont_list, pred_time, eval_time, file_path, hyperparams,
+        c_index_mean, brier_mean, wbrier_mean=k_fold_cross_validation(df_, id_time_status_list,observation, bin_list, cont_list, pred_time, eval_time, file_path, hyperparams,
                             K,n, seed, norm_mode, burn_in_mode, boost_mode,max_length)
     elif method=="split":
-        c_index_mean, brier_mean =train_test_split_validation(
+        c_index_mean, brier_mean, wbrier_mean =train_test_split_validation(
         df_, id_time_status_list, observation,bin_list, cont_list, pred_time, eval_time,
         file_path, hyperparams,n, train_rate, seed, norm_mode,
         burn_in_mode, boost_mode,max_length)
     elif method=="boot":
-        c_index_mean, brier_mean =bootstrap_validation(
+        c_index_mean, brier_mean, wbrier_mean =bootstrap_validation(
         df_, id_time_status_list,observation, bin_list, cont_list, pred_time, eval_time,
         file_path, hyperparams, n, seed, norm_mode,burn_in_mode, boost_mode,max_length)
     else:
         raise ValueError(f"Unsupported validation method: {method}. Choose from 'K-fold', 'split' or 'boot'")
-    return {'C_index':c_index_mean, 'Brier':brier_mean}
+    return {'C_index':c_index_mean, 'Brier':brier_mean,'Weight_Brier':wbrier_mean}
 
 
 
@@ -94,6 +94,7 @@ def k_fold_cross_validation(df_, id_time_status_list,observation, bin_list, cont
     """
     all_c_index = []
     all_brier = []
+    all_wbrier = []
     for i in range(n):
         try:
             # Initialize KFold
@@ -113,6 +114,9 @@ def k_fold_cross_validation(df_, id_time_status_list,observation, bin_list, cont
                 np.zeros((K, num_pred, num_eval)) for _ in range(num_Event)
             ]
             brier_matrices = [
+                np.zeros((K, num_pred, num_eval)) for _ in range(num_Event)
+            ]
+            wbrier_matrices = [
                 np.zeros((K, num_pred, num_eval)) for _ in range(num_Event)
             ]
             # Perform K-fold cross-validation
@@ -162,7 +166,13 @@ def k_fold_cross_validation(df_, id_time_status_list,observation, bin_list, cont
                             )
 
                             # Calculate Brier score
-                            brier = weighted_brier_score(
+                            brier=brier_score(
+                                risk_all[k][:, p, t],
+                                va_time,
+                                (va_label[:, 0] == event).astype(int),
+                                int(t_time) + int(p_time)
+                            )
+                            wbrier = weighted_brier_score(
                                 tr_time,
                                 (tr_label[:, 0] == event).astype(int),
                                 risk_all[k][:, p, t],
@@ -173,15 +183,19 @@ def k_fold_cross_validation(df_, id_time_status_list,observation, bin_list, cont
                             # Store in matrices
                             c_index_matrices[k][fold, p, t] = c_idx
                             brier_matrices[k][fold, p, t] = brier
+                            wbrier_matrices[k][fold, p, t] = wbrier
                 print(f"Completed evaluation for Fold {fold + 1}")
 
             avg_c_index = [np.zeros_like(mat[0]) for mat in c_index_matrices]
             avg_brier = [np.zeros_like(mat[0]) for mat in brier_matrices]
+            avg_wbrier = [np.zeros_like(mat[0]) for mat in wbrier_matrices]
             for event_idx in range(num_Event):
                 avg_c_index[event_idx] = np.nanmean(c_index_matrices[event_idx], axis=0)
                 avg_brier[event_idx] = np.nanmean(brier_matrices[event_idx], axis=0)
+                avg_wbrier[event_idx] = np.nanmean(wbrier_matrices[event_idx], axis=0)
             all_c_index.append(avg_c_index)
             all_brier.append(avg_brier)
+            all_wbrier.append(avg_wbrier)
         except Exception as e:
             print(f"Error in iteration i={i}: {e}")
             continue
@@ -194,13 +208,17 @@ def k_fold_cross_validation(df_, id_time_status_list,observation, bin_list, cont
         np.nanmean([result[event_idx] for result in all_brier], axis=0)
         for event_idx in range(num_Event)
     ]
+    mean_wbrier = [
+        np.nanmean([result[event_idx] for result in all_wbrier], axis=0)
+        for event_idx in range(num_Event)
+    ]
     event_names = [f"Event_{i + 1}" for i in range(num_Event)]
 
     c_index_mean= {
         event_names[i]: pd.DataFrame(
             mean_c_index[i],
-            index=[f"Pred_{t:.1f}" for t in pred_time],  
-            columns=[f"Eval_{t:.1f}" for t in eval_time]  
+            index=[f"Pred_{t:.1f}" for t in pred_time],  # 行名：保留1位小数
+            columns=[f"Eval_{t:.1f}" for t in eval_time]  # 列名：保留1位小数
         ).rename_axis(
             index="Prediction Time",
             columns="Evaluation Time"
@@ -218,9 +236,20 @@ def k_fold_cross_validation(df_, id_time_status_list,observation, bin_list, cont
         )
         for i in range(num_Event)
     }
+    wbrier_mean = {
+        event_names[i]: pd.DataFrame(
+            mean_wbrier[i],
+            index=[f"Pred_{t:.1f}" for t in pred_time],
+            columns=[f"Eval_{t:.1f}" for t in eval_time]
+        ).rename_axis(
+            index="Prediction Time",
+            columns="Evaluation Time"
+        )
+        for i in range(num_Event)
+    }
 
 
-    return  c_index_mean,brier_mean
+    return  c_index_mean,brier_mean,wbrier_mean
 
 
 def train_test_split_validation(
@@ -260,6 +289,7 @@ def train_test_split_validation(
     """
     all_c_index = []
     all_brier = []
+    all_wbrier = []
     for i in range(n):
         try:
             # Split data into training and validation sets
@@ -305,6 +335,9 @@ def train_test_split_validation(
             brier_values = [
                 np.zeros((num_pred, num_eval)) for _ in range(num_Event)
             ]
+            wbrier_values = [
+                np.zeros((num_pred, num_eval)) for _ in range(num_Event)
+            ]
             for p, p_time in enumerate(pred_time):
                 for t, t_time in enumerate(eval_time):
                     for k in range(num_Event):
@@ -318,7 +351,13 @@ def train_test_split_validation(
                         )
 
                         # Calculate Brier score
-                        brier = weighted_brier_score(
+                        brier=brier_score(
+                            risk_all[k][:, p, t],
+                            va_time,
+                            (va_label[:, 0] == event).astype(int),
+                            int(t_time) + int(p_time)
+                        )
+                        wbrier = weighted_brier_score(
                             tr_time,
                             (tr_label[:, 0] == event).astype(int),
                             risk_all[k][:, p, t],
@@ -329,8 +368,10 @@ def train_test_split_validation(
                         # Store in matrices
                         c_index_values[k][p, t] = c_idx
                         brier_values[k][p, t] = brier
+                        wbrier_values[k][p, t] = wbrier
             all_c_index.append(c_index_values)
             all_brier.append(brier_values)
+            all_wbrier.append(wbrier_values)
         except Exception as e:
             print(f"Error in iteration i={i}: {e}")
             continue
@@ -341,6 +382,10 @@ def train_test_split_validation(
 
     mean_brier = [
         np.nanmean([result[event_idx] for result in all_brier], axis=0)
+        for event_idx in range(num_Event)
+    ]
+    mean_wbrier = [
+        np.nanmean([result[event_idx] for result in all_wbrier], axis=0)
         for event_idx in range(num_Event)
     ]
     event_names = [f"Event_{i + 1}" for i in range(num_Event)]
@@ -367,8 +412,19 @@ def train_test_split_validation(
         )
         for i in range(num_Event)
     }
+    wbrier_mean = {
+        event_names[i]: pd.DataFrame(
+            mean_wbrier[i],
+            index=[f"Pred_{t:.1f}" for t in pred_time],
+            columns=[f"Eval_{t:.1f}" for t in eval_time]
+        ).rename_axis(
+            index="Prediction Time",
+            columns="Evaluation Time"
+        )
+        for i in range(num_Event)
+    }
 
-    return c_index_mean,brier_mean
+    return c_index_mean,brier_mean,wbrier_mean
 
 
 def bootstrap_validation(
@@ -425,7 +481,7 @@ def bootstrap_validation(
         df_, id_time_status_list,observation, bin_list, cont_list, norm_mode
     )
     risk_all = f_get_risk_predictions(original_sess, original_model, orig_data, orig_data_mi, pred_time, eval_time)
-    cindex_orig,brier_orig= calculate_metrics(
+    cindex_orig,brier_orig,wbrier_orig= calculate_metrics(
         risk_all, orig_time, orig_label, orig_time, orig_label,
         pred_time, eval_time,num_Event)
 
@@ -433,6 +489,7 @@ def bootstrap_validation(
     print(f"\nStarting bootstrap validation with {n_bootstrap} iterations...")
     all_c_index = []
     all_brier = []
+    all_wbrier = []
     for i in range(n_bootstrap):
         try:
             print(f"\nBootstrap iteration {i + 1}/{n_bootstrap}")
@@ -456,21 +513,23 @@ def bootstrap_validation(
             # Calculate bootstrap performance (on bootstrap sample)
             boot_risk = f_get_risk_predictions(bootstrap_sess, bootstrap_model, boot_data, boot_data_mi, pred_time,
                                                eval_time)
-            cindex_boot, brier_boot = calculate_metrics(
+            cindex_boot, brier_boot,wbrier_boot = calculate_metrics(
                 boot_risk, boot_time, boot_label, boot_time, boot_label,
                 pred_time, eval_time, num_Event)
 
             # Calculate test performance (on original data)
-            cindex_test, brier_test = calculate_metrics(
+            cindex_test, brier_test, wbrier_test = calculate_metrics(
                 boot_risk, orig_time, orig_label, boot_time, boot_label,
                 pred_time, eval_time, num_Event)
 
             # Calculate optimism for this bootstrap iteration
             cindex_optimism = [a - b for a, b in zip(cindex_boot, cindex_test)]
             brier_optimism = [a - b for a, b in zip(brier_boot, brier_test)]
+            wbrier_optimism = [a - b for a, b in zip(wbrier_boot, wbrier_test)]
 
             all_c_index.append(cindex_optimism)
             all_brier.append(brier_optimism)
+            all_wbrier.append(wbrier_optimism)
         except Exception as e:
             print(f"Error in iteration i={i}: {e}")
             continue
@@ -484,10 +543,15 @@ def bootstrap_validation(
         np.nanmean([result[event_idx] for result in all_brier], axis=0)
         for event_idx in range(num_Event)
     ]
+    mean_wbrier = [
+        np.nanmean([result[event_idx] for result in all_wbrier], axis=0)
+        for event_idx in range(num_Event)
+    ]
 
     # Calculate optimism-corrected performance
     cindex_corr=[a - b for a, b in zip(cindex_orig, mean_c_index)]
     brier_corr=[a + b for a, b in zip(brier_orig, mean_brier)]
+    wbrier_corr = [a + b for a, b in zip(wbrier_orig, mean_wbrier)]
     event_names = [f"Event_{i + 1}" for i in range(num_Event)]
 
     c_index_mean = {
@@ -512,8 +576,19 @@ def bootstrap_validation(
         )
         for i in range(num_Event)
     }
+    wbrier_mean = {
+        event_names[i]: pd.DataFrame(
+            wbrier_corr[i],
+            index=[f"Pred_{t:.1f}" for t in pred_time],
+            columns=[f"Eval_{t:.1f}" for t in eval_time]
+        ).rename_axis(
+            index="Prediction Time",
+            columns="Evaluation Time"
+        )
+        for i in range(num_Event)
+    }
 
-    return c_index_mean,brier_mean
+    return c_index_mean,brier_mean,wbrier_mean
 
 
 # Helper functions
@@ -531,6 +606,9 @@ def calculate_metrics(risk_all,va_time, va_label, tr_time, tr_label, pred_time, 
     brier_values = [
         np.zeros((num_pred, num_eval)) for _ in range(num_Event)
     ]
+    wbrier_values = [
+        np.zeros((num_pred, num_eval)) for _ in range(num_Event)
+    ]
     for p, p_time in enumerate(pred_time):
         for t, t_time in enumerate(eval_time):
             for k in range(num_Event):
@@ -544,7 +622,13 @@ def calculate_metrics(risk_all,va_time, va_label, tr_time, tr_label, pred_time, 
                 )
 
                 # Calculate Brier score
-                brier = weighted_brier_score(
+                brier=brier_score(
+                    risk_all[k][:, p, t],
+                    va_time,
+                    (va_label[:, 0] == event).astype(int),
+                    int(t_time) + int(p_time)
+                )
+                wbrier = weighted_brier_score(
                     tr_time,
                     (tr_label[:, 0] == event).astype(int),
                     risk_all[k][:, p, t],
@@ -555,7 +639,8 @@ def calculate_metrics(risk_all,va_time, va_label, tr_time, tr_label, pred_time, 
                 # Store in matrices
                 c_index_values[k][p, t] = c_idx
                 brier_values[k][p, t] = brier
+                wbrier_values[k][p, t] = wbrier
 
-    return c_index_values,brier_values
+    return c_index_values,brier_values,wbrier_values
 
 
