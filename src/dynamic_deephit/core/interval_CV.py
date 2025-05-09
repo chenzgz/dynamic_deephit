@@ -2,7 +2,7 @@ from sklearn.model_selection import KFold
 import numpy as np
 from dynamic_deephit.core.main import train_dynamic_deephit_model,f_get_risk_predictions
 import dynamic_deephit.utils.import_data as impt
-from dynamic_deephit.core.functions import c_index,weighted_brier_score
+from dynamic_deephit.core.functions import c_index,weighted_brier_score,brier_score
 from sklearn.model_selection import train_test_split
 from sklearn.utils import resample
 import tensorflow as tf
