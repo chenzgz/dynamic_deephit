@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from dynamic_deephit.core.functions import c_index,weighted_brier_score
+from dynamic_deephit.core.functions import c_index,weighted_brier_score,brier_score
 from dynamic_deephit.core.main import f_get_risk_predictions
 import dynamic_deephit.utils.import_data as impt
 def external_validation (model,sess,newdata,df_, id_time_status_list,observation, bin_list, cont_list, pred_time, eval_time,norm_mode='standard',max_length=None):
@@ -51,6 +51,9 @@ Returns
     brier_values = [
         np.zeros((num_pred, num_eval)) for _ in range(num_Event)
     ]
+    wbrier_values = [
+        np.zeros((num_pred, num_eval)) for _ in range(num_Event)
+    ]
     for p, p_time in enumerate(pred_time):
         for t, t_time in enumerate(eval_time):
             for k in range(num_Event):
@@ -64,7 +67,13 @@ Returns
                 )
 
                 # Calculate Brier score
-                brier = weighted_brier_score(
+                brier = brier_score(
+                    risk_all[k][:, p, t],
+                    time,
+                    (label[:, 0] == event).astype(int),
+                    int(t_time) + int(p_time)
+                )
+                wbrier = weighted_brier_score(
                     tr_time,
                     (tr_label[:, 0] == event).astype(int),
                     risk_all[k][:, p, t],
@@ -75,13 +84,14 @@ Returns
                 # Store in matrices
                 c_index_values[k][p, t] = c_idx
                 brier_values[k][p, t] = brier
+                wbrier_values[k][p, t] = wbrier
     event_names = [f"Event_{i + 1}" for i in range(num_Event)]
 
     c_index_mean = {
         event_names[i]: pd.DataFrame(
             c_index_values[i],
-            index=[f"Pred_{t:.1f}" for t in pred_time],  
-            columns=[f"Eval_{t:.1f}" for t in eval_time] 
+            index=[f"Pred_{t:.1f}" for t in pred_time],  # 行名：保留1位小数
+            columns=[f"Eval_{t:.1f}" for t in eval_time]  # 列名：保留1位小数
         ).rename_axis(
             index="Prediction Time",
             columns="Evaluation Time"
@@ -99,5 +109,16 @@ Returns
         )
         for i in range(num_Event)
     }
-    return c_index_mean, brier_mean
+    wbrier_mean = {
+        event_names[i]: pd.DataFrame(
+            wbrier_values[i],
+            index=[f"Pred_{t:.1f}" for t in pred_time],
+            columns=[f"Eval_{t:.1f}" for t in eval_time]
+        ).rename_axis(
+            index="Prediction Time",
+            columns="Evaluation Time"
+        )
+        for i in range(num_Event)
+    }
+    return {'C_index':c_index_mean, 'Brier':brier_mean,'Weight_Brier':wbrier_mean}
 
