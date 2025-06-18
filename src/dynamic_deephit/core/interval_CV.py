@@ -56,7 +56,7 @@ def interval_CV(method,df_, id_time_status_list,observation, bin_list, cont_list
         file_path, hyperparams, n, seed, norm_mode,burn_in_mode, boost_mode,max_length)
     else:
         raise ValueError(f"Unsupported validation method: {method}. Choose from 'K-fold', 'split' or 'boot'")
-    return {'C_index':c_index_mean, 'Brier':brier_mean,'Weight_Brier':wbrier_mean}
+    return {'C_index':c_index_mean, 'Brier':brier_mean}
 
 
 
@@ -217,8 +217,8 @@ def k_fold_cross_validation(df_, id_time_status_list,observation, bin_list, cont
     c_index_mean= {
         event_names[i]: pd.DataFrame(
             mean_c_index[i],
-            index=[f"Pred_{t:.1f}" for t in pred_time],  # 行名：保留1位小数
-            columns=[f"Eval_{t:.1f}" for t in eval_time]  # 列名：保留1位小数
+            index=[f"Pred_{t:.1f}" for t in pred_time],  
+            columns=[f"Eval_{t:.1f}" for t in eval_time]  
         ).rename_axis(
             index="Prediction Time",
             columns="Evaluation Time"
@@ -393,8 +393,8 @@ def train_test_split_validation(
     c_index_mean = {
         event_names[i]: pd.DataFrame(
             mean_c_index[i],
-            index=[f"Pred_{t:.1f}" for t in pred_time],  # 行名：保留1位小数
-            columns=[f"Eval_{t:.1f}" for t in eval_time]  # 列名：保留1位小数
+            index=[f"Pred_{t:.1f}" for t in pred_time],  
+            columns=[f"Eval_{t:.1f}" for t in eval_time]  
         ).rename_axis(
             index="Prediction Time",
             columns="Evaluation Time"
@@ -557,8 +557,8 @@ def bootstrap_validation(
     c_index_mean = {
         event_names[i]: pd.DataFrame(
             cindex_corr[i],
-            index=[f"Pred_{t:.1f}" for t in pred_time],  # 行名：保留1位小数
-            columns=[f"Eval_{t:.1f}" for t in eval_time]  # 列名：保留1位小数
+            index=[f"Pred_{t:.1f}" for t in pred_time], 
+            columns=[f"Eval_{t:.1f}" for t in eval_time]  
         ).rename_axis(
             index="Prediction Time",
             columns="Evaluation Time"
