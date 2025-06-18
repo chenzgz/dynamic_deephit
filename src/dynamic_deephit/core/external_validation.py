@@ -90,8 +90,8 @@ Returns
     c_index_mean = {
         event_names[i]: pd.DataFrame(
             c_index_values[i],
-            index=[f"Pred_{t:.1f}" for t in pred_time],  # 行名：保留1位小数
-            columns=[f"Eval_{t:.1f}" for t in eval_time]  # 列名：保留1位小数
+            index=[f"Pred_{t:.1f}" for t in pred_time],  
+            columns=[f"Eval_{t:.1f}" for t in eval_time]  
         ).rename_axis(
             index="Prediction Time",
             columns="Evaluation Time"
@@ -120,5 +120,5 @@ Returns
         )
         for i in range(num_Event)
     }
-    return {'C_index':c_index_mean, 'Brier':brier_mean,'Weight_Brier':wbrier_mean}
+    return {'C_index':c_index_mean, 'Brier':brier_mean}
 
